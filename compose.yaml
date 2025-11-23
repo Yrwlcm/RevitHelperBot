@@ -1,0 +1,7 @@
+﻿services:
+  revithelperbot:
+    image: revithelperbot
+    build:
+      context: .
+      dockerfile: RevitHelperBot/Dockerfile
+

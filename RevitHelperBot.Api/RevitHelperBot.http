@@ -1,0 +1,6 @@
+@RevitHelperBot_HostAddress = http://localhost:5219
+
+GET {{RevitHelperBot_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

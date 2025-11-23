@@ -1,0 +1,27 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+
+# Rider IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio files (if also using VS)
+.vs/
+*.suo
+*.user
+*.userprefs
+
+# Package files
+packages/
+*.nupkg
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
