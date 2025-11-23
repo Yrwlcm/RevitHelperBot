@@ -2,7 +2,8 @@ using Microsoft.Extensions.Options;
 using RevitHelperBot.Api.Options;
 using RevitHelperBot.Api.Services;
 using RevitHelperBot.Application;
-using RevitHelperBot.Core.Interfaces;
+using RevitHelperBot.Application.Messaging;
+using RevitHelperBot.Application.Options;
 using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,9 @@ builder.Services.AddOptions<TelegramBotOptions>()
         "Telegram bot token must be provided via configuration or environment variable.")
     .ValidateOnStart();
 
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
+builder.Services.Configure<ScenarioOptions>(builder.Configuration.GetSection(ScenarioOptions.SectionName));
+
 builder.Services.AddHttpClient(TelegramBotOptions.HttpClientName)
     .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
     {
@@ -23,7 +27,7 @@ builder.Services.AddHttpClient(TelegramBotOptions.HttpClientName)
         return new TelegramBotClient(options.BotToken!, httpClient);
     });
 
-builder.Services.AddScoped<IBotMessageSender, TelegramBotMessageSender>();
+builder.Services.AddScoped<IBotResponseSender, TelegramBotResponseSender>();
 builder.Services.AddHostedService<TelegramBotService>();
 builder.Services.AddHealthChecks();
 

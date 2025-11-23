@@ -4,5 +4,5 @@ namespace RevitHelperBot.Core.Interfaces;
 
 public interface IBotUpdateService
 {
-    Task HandleMessageAsync(BotMessage message, CancellationToken cancellationToken);
+    Task HandleUpdateAsync(BotUpdate update, CancellationToken cancellationToken);
 }

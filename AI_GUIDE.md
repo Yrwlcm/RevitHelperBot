@@ -1,14 +1,24 @@
 # Guide for AI Agents
 
-- Use .NET 9 and the local SDK at `/home/asd/.dotnet/dotnet` for commands (`run`, `test`, `build`).
-- Keep layers clean:
+- Runtime: use .NET 9 and the local SDK at `/home/asd/.dotnet/dotnet` for `run`, `test`, `build`.
+- Architecture:
   - Core: only domain contracts/entities, no framework refs.
-  - Application: orchestrates Core, no infrastructure dependencies.
-  - Api: composition root, DI, hosting, Telegram integration.
+  - Application: orchestrates Core, implements conversation engine/state store, localization, scenario services; keep it Telegram-agnostic.
+  - Api: composition root (DI, hosting), Telegram integration, concrete `IBotResponseSender`.
+- Conversation flow:
+  - `/start` sets `ConversationState.TopicSelection` and sends the welcome message from `LocalizationService`.
+  - `/reload` is handled in `BotUpdateService`; allowed only for `Admin:AllowedUserIds`, then reloads scenario data.
+  - Text or callback data without commands is echoed via `ConversationEngine` for now.
+- Configuration:
+  - `Telegram:BotToken` or env `Telegram__BotToken`.
+  - `Admin:AllowedUserIds` (chatIds allowed to `/reload`).
+  - `Scenario:FilePath` path to the Excel scenario (MiniExcel is used; avoid adding other storage).
 - Style:
   - Do not prefix private fields with `_`; prefer `this.field` if needed.
   - Favor DI over statics/singletons; keep services small and testable.
-  - Keep configuration via options/binding; respect `Telegram:BotToken` and env `Telegram__BotToken`.
-- Testing: add/keep unit tests under `RevitHelperBot.Application.Tests`; run with `/home/asd/.dotnet/dotnet test RevitHelperBot.sln`.
+  - Keep configuration via options/binding.
+- Testing:
+  - Keep unit tests under `RevitHelperBot.Application.Tests`; prefer fakes for `IBotResponseSender`/`IScenarioService`, avoid hitting Telegram or the filesystem in tests.
+  - Run with `/home/asd/.dotnet/dotnet test RevitHelperBot.sln`; first restore needs internet, VSTest may require allowing socket permissions.
 - Containerization: Dockerfile lives in `RevitHelperBot.Api`; compose files expect `TELEGRAM_BOT_TOKEN`.
 - No database yet; avoid adding persistence until explicitly requested.

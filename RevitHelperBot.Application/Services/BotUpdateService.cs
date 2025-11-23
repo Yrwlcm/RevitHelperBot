@@ -1,4 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RevitHelperBot.Application.Conversation;
+using RevitHelperBot.Application.Messaging;
+using RevitHelperBot.Application.Options;
+using RevitHelperBot.Application.Scenario;
 using RevitHelperBot.Core.Entities;
 using RevitHelperBot.Core.Interfaces;
 
@@ -6,37 +11,64 @@ namespace RevitHelperBot.Application.Services;
 
 public class BotUpdateService : IBotUpdateService
 {
-    private readonly IBotMessageSender messageSender;
+    private readonly IConversationEngine conversationEngine;
+    private readonly IScenarioService scenarioService;
+    private readonly IBotResponseSender responseSender;
+    private readonly AdminOptions adminOptions;
     private readonly ILogger<BotUpdateService> logger;
 
-    public BotUpdateService(IBotMessageSender messageSender, ILogger<BotUpdateService> logger)
+    public BotUpdateService(
+        IConversationEngine conversationEngine,
+        IScenarioService scenarioService,
+        IBotResponseSender responseSender,
+        IOptions<AdminOptions> adminOptions,
+        ILogger<BotUpdateService> logger)
     {
-        this.messageSender = messageSender;
+        this.conversationEngine = conversationEngine;
+        this.scenarioService = scenarioService;
+        this.responseSender = responseSender;
+        this.adminOptions = adminOptions.Value;
         this.logger = logger;
     }
 
-    public async Task HandleMessageAsync(BotMessage message, CancellationToken cancellationToken)
+    public async Task HandleUpdateAsync(BotUpdate update, CancellationToken cancellationToken)
     {
-        if (message is null)
+        if (update is null)
         {
-            throw new ArgumentNullException(nameof(message));
+            throw new ArgumentNullException(nameof(update));
         }
 
-        if (string.IsNullOrWhiteSpace(message.Text))
+        if (IsReloadCommand(update.Command))
         {
-            logger.LogInformation("Ignoring empty message from chat {ChatId}", message.ChatId);
+            await HandleReloadAsync(update, cancellationToken);
             return;
         }
 
-        if (string.Equals(message.Command, "/start", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            await messageSender.SendTextMessageAsync(message.ChatId, "System Online", cancellationToken);
-            return;
+            await conversationEngine.HandleAsync(update, cancellationToken);
         }
-
-        await messageSender.SendTextMessageAsync(
-            message.ChatId,
-            message.Text!,
-            cancellationToken);
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to process update for chat {ChatId}", update.ChatId);
+            throw;
+        }
     }
+
+    private async Task HandleReloadAsync(BotUpdate update, CancellationToken cancellationToken)
+    {
+        if (!IsAdmin(update.SenderId))
+        {
+            await responseSender.SendAsync(update.ChatId, new BotResponse("⛔ Access denied.", null), cancellationToken);
+            return;
+        }
+
+        await scenarioService.ReloadData(cancellationToken);
+        await responseSender.SendAsync(update.ChatId, new BotResponse("✅ Configuration reloaded from disk.", null), cancellationToken);
+    }
+
+    private bool IsAdmin(long senderId) => adminOptions.AllowedUserIds.Contains(senderId);
+
+    private static bool IsReloadCommand(string? command) =>
+        string.Equals(command, "/reload", StringComparison.OrdinalIgnoreCase);
 }

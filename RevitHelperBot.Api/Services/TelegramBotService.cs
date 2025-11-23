@@ -51,29 +51,47 @@ public class TelegramBotService : BackgroundService
         Update update,
         CancellationToken cancellationToken)
     {
-        if (update.Type != UpdateType.Message || update.Message is not { Text: { } messageText } message)
-        {
-            return;
-        }
-
-        var command = ExtractCommand(messageText);
-
         using var scope = scopeFactory.CreateScope();
         var botUpdateService = scope.ServiceProvider.GetRequiredService<IBotUpdateService>();
 
         try
         {
-            var botMessage = new BotMessage(
-                message.Chat.Id,
-                message.From?.Username,
-                messageText,
-                command);
+            if (update.Type == UpdateType.Message && update.Message is { Text: { } messageText } message)
+            {
+                var command = ExtractCommand(messageText);
+                var botUpdate = new BotUpdate(
+                    message.Chat.Id,
+                    message.From?.Id ?? message.Chat.Id,
+                    message.From?.Username,
+                    messageText,
+                    command,
+                    null);
 
-            await botUpdateService.HandleMessageAsync(botMessage, cancellationToken);
+                await botUpdateService.HandleUpdateAsync(botUpdate, cancellationToken);
+                return;
+            }
+
+            if (update.Type == UpdateType.CallbackQuery && update.CallbackQuery is { } callback)
+            {
+                var botUpdate = new BotUpdate(
+                    callback.Message?.Chat.Id ?? callback.From.Id,
+                    callback.From?.Id ?? callback.Message?.Chat.Id ?? callback.From.Id,
+                    callback.From?.Username,
+                    callback.Message?.Text,
+                    null,
+                    callback.Data);
+
+                await botUpdateService.HandleUpdateAsync(botUpdate, cancellationToken);
+                await botClient.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
+                return;
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to process update for chat {ChatId}", message.Chat.Id);
+            var chatId = update.Message?.Chat.Id
+                         ?? update.CallbackQuery?.Message?.Chat.Id
+                         ?? update.CallbackQuery?.From.Id;
+            logger.LogError(ex, "Failed to process update for chat {ChatId}", chatId);
         }
     }
 
@@ -86,7 +104,7 @@ public class TelegramBotService : BackgroundService
         {
             ApiRequestException apiRequestException =>
                 $"Telegram API Error [{apiRequestException.ErrorCode}]: {apiRequestException.Message}",
-            _ => exception.Message
+            Exception ex => ex.Message
         };
 
         logger.LogError(exception, "Telegram polling error: {ErrorMessage}", errorMessage);
