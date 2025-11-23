@@ -9,13 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10"/>
+        <PackageReference Include="Telegram.Bot" Version="20.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+        <ProjectReference Include="..\\RevitHelperBot.Application\\RevitHelperBot.Application.csproj" />
+        <ProjectReference Include="..\\RevitHelperBot.Core\\RevitHelperBot.Core.csproj" />
     </ItemGroup>
 
 </Project>
