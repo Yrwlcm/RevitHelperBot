@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RevitHelperBot Simulator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --accent: #22d3ee;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(34,211,238,0.08), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(52,211,153,0.08), transparent 30%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: min(960px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 18px;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.35);
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      overflow: hidden;
+    }
+    .sidebar {
+      padding: 20px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      background: linear-gradient(145deg, rgba(255,255,255,0.04), transparent);
+    }
+    .sidebar h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
+    .sidebar p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    .field label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    .field input, .field textarea {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .chat {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: radial-gradient(circle at 80% 20%, rgba(34,211,238,0.08), transparent 25%);
+    }
+    .bubble {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.5;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: rgba(34,211,238,0.15);
+      border-color: rgba(34,211,238,0.35);
+    }
+    .bubble.bot {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.04);
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { border-color: rgba(34,211,238,0.5); color: var(--accent); }
+    .composer {
+      display: flex;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.3);
+    }
+    .composer input {
+      flex: 1;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 12px;
+      font-size: 14px;
+    }
+    .send {
+      background: linear-gradient(135deg, #22d3ee, #14b8a6);
+      color: #0b1022;
+      border: none;
+      border-radius: 12px;
+      padding: 0 18px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(20,184,166,0.35);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .send:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(20,184,166,0.45); }
+    .send:active { transform: translateY(0); }
+    .status { font-size: 13px; color: var(--muted); margin-top: 12px; }
+    .error { color: var(--error); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <h1>RevitHelperBot</h1>
+      <p>Симулятор диалога без Telegram. Сценарий читается из <code>Scenario:FilePath</code> (JSON). Нажимайте кнопки или вводите текст.</p>
+      <div class="field">
+        <label for="chatId">Chat Id</label>
+        <input id="chatId" type="number" value="1" />
+      </div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" type="text" value="web-user" />
+      </div>
+      <div class="field">
+        <label>Кратко</label>
+        <p>Команда <code>/start</code> отдает узел <code>start</code>; кнопки шлют callback, текст ищет по keywords, иначе эхо.</p>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="chat">
+      <div class="messages" id="messages"></div>
+      <div class="composer">
+        <input id="input" type="text" placeholder="Введите сообщение или /start" />
+        <button class="send" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const chatIdEl = document.getElementById('chatId');
+    const usernameEl = document.getElementById('username');
+    const statusEl = document.getElementById('status');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function appendMessage(text, author = 'bot', buttons = []) {
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${author === 'user' ? 'user' : 'bot'}`;
+      bubble.innerText = text;
+
+      if (buttons && buttons.length > 0) {
+        const btnWrap = document.createElement('div');
+        btnWrap.className = 'buttons';
+        buttons.forEach(btn => {
+          const b = document.createElement('button');
+          b.className = 'btn';
+          b.innerText = btn.text;
+          b.addEventListener('click', () => sendMessage(null, btn.nextNodeId, btn.text));
+          btnWrap.appendChild(b);
+        });
+        bubble.appendChild(btnWrap);
+      }
+
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage(text, callbackData, displayText) {
+      const chatId = Number(chatIdEl.value || '0');
+      const username = usernameEl.value || 'web-user';
+      const payloadText = text ?? '';
+
+      if (!chatId) {
+        statusEl.textContent = 'Chat Id is required';
+        statusEl.classList.add('error');
+        return;
+      }
+
+      if (displayText) {
+        appendMessage(displayText, 'user');
+      } else if (text) {
+        appendMessage(text, 'user');
+      }
+
+      statusEl.textContent = '...';
+      statusEl.classList.remove('error');
+
+      try {
+        const res = await fetch('/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId,
+            username,
+            text: payloadText,
+            callbackData
+          })
+        });
+
+        if (!res.ok) {
+          const body = await res.text();
+          throw new Error(body || res.statusText);
+        }
+
+        const data = await res.json();
+        (data.messages || []).forEach(msg => {
+          appendMessage(msg.text, 'bot', msg.buttons || []);
+        });
+        statusEl.textContent = 'OK';
+      } catch (err) {
+        statusEl.textContent = err.message;
+        statusEl.classList.add('error');
+      }
+    }
+
+    sendBtn.addEventListener('click', () => {
+      const text = inputEl.value.trim();
+      if (text) {
+        sendMessage(text);
+        inputEl.value = '';
+        inputEl.focus();
+      }
+    });
+
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
+      }
+    });
+
+    appendMessage('👋 Отправьте /start, чтобы начать.');
+  </script>
+</body>
+</html>
