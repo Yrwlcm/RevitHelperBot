@@ -21,6 +21,36 @@ public class ScenarioService : IScenarioService
         return node;
     }
 
+    public DialogueNode? FindByKeyword(string searchText)
+    {
+        ArgumentNullException.ThrowIfNull(searchText);
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return null;
+        }
+
+        var normalized = searchText.ToLowerInvariant();
+
+        foreach (var node in cache.Values.OrderBy(n => n.Id, StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var keyword in node.Keywords)
+            {
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    continue;
+                }
+
+                var normalizedKeyword = keyword.ToLowerInvariant();
+                if (normalized.Contains(normalizedKeyword))
+                {
+                    return node;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public async Task ReloadData(CancellationToken cancellationToken)
     {
         await reloadLock.WaitAsync(cancellationToken);

@@ -6,9 +6,9 @@
   - Application: orchestrates Core, implements conversation engine/state store, localization, scenario services; keep it Telegram-agnostic.
   - Api: composition root (DI, hosting), Telegram integration, concrete `IBotResponseSender`.
 - Conversation flow:
-  - `/start` sets `ConversationState.TopicSelection` and sends the welcome message from `LocalizationService`.
+  - `/start` sets `ConversationState.TopicSelection` and outputs the node with `Id=start` (if present) from the Excel graph; otherwise sends the welcome text.
+  - Callback data is treated as a node id; text without commands is resolved by keyword search (`Keywords` column) before falling back to echo.
   - `/reload` is handled in `BotUpdateService`; allowed only for `Admin:AllowedUserIds`, then reloads scenario data.
-  - Text or callback data without commands is echoed via `ConversationEngine` for now.
 - Configuration:
   - `Telegram:BotToken` or env `Telegram__BotToken`.
   - `Admin:AllowedUserIds` (chatIds allowed to `/reload`).

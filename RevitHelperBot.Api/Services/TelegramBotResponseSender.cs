@@ -26,7 +26,7 @@ public class TelegramBotResponseSender : IBotResponseSender
         {
             await botClient.SendPhotoAsync(
                 chatId,
-                Telegram.Bot.Types.InputFiles.InputFile.FromUri(response.ImageUrl),
+                Telegram.Bot.Types.InputFile.FromUri(response.ImageUrl),
                 caption: response.Text,
                 replyMarkup: replyMarkup,
                 cancellationToken: cancellationToken);
