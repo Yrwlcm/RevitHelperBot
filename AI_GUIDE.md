@@ -12,7 +12,7 @@
 - Configuration:
   - `Telegram:BotToken` or env `Telegram__BotToken`.
   - `Admin:AllowedUserIds` (chatIds allowed to `/reload`).
-  - `Scenario:FilePath` path to the Excel scenario (MiniExcel is used; avoid adding other storage).
+  - `Scenario:FilePath` path to the JSON scenario file (`data/scenario.json` by default).
 - Style:
   - Do not prefix private fields with `_`; prefer `this.field` if needed.
   - Favor DI over statics/singletons; keep services small and testable.

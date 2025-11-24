@@ -15,7 +15,7 @@ public static class DependencyInjection
         services.AddSingleton<IConversationStateStore, InMemoryConversationStateStore>();
         services.AddScoped<IConversationEngine, ConversationEngine>();
         services.AddScoped<ILocalizationService, LocalizationService>();
-        services.AddSingleton<IScenarioRepository, ExcelScenarioRepository>();
+        services.AddSingleton<IScenarioRepository, JsonScenarioRepository>();
         services.AddSingleton<IScenarioService, ScenarioService>();
         services.AddScoped<IBotResponseSender, NoOpBotResponseSender>();
         services.AddScoped<IBotUpdateService, BotUpdateService>();
