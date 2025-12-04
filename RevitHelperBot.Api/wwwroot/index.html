@@ -136,7 +136,7 @@
       padding: 12px;
       font-size: 14px;
     }
-    .send {
+    .btn-primary {
       background: linear-gradient(135deg, #22d3ee, #14b8a6);
       color: #0b1022;
       border: none;
@@ -147,8 +147,8 @@
       box-shadow: 0 10px 25px rgba(20,184,166,0.35);
       transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
-    .send:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(20,184,166,0.45); }
-    .send:active { transform: translateY(0); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(20,184,166,0.45); }
+    .btn-primary:active { transform: translateY(0); }
     .status { font-size: 13px; color: var(--muted); margin-top: 12px; }
     .error { color: var(--error); }
   </style>
@@ -176,7 +176,8 @@
       <div class="messages" id="messages"></div>
       <div class="composer">
         <input id="input" type="text" placeholder="Введите сообщение или /start" />
-        <button class="send" id="sendBtn">Send</button>
+        <button class="btn-primary" id="startBtn">Start</button>
+        <button class="btn-primary" id="sendBtn">Send</button>
       </div>
     </div>
   </div>
@@ -187,6 +188,7 @@
     const usernameEl = document.getElementById('username');
     const statusEl = document.getElementById('status');
     const sendBtn = document.getElementById('sendBtn');
+    const startBtn = document.getElementById('startBtn');
 
     function appendMessage(text, author = 'bot', buttons = []) {
       const bubble = document.createElement('div');
@@ -265,6 +267,10 @@
         inputEl.value = '';
         inputEl.focus();
       }
+    });
+
+    startBtn.addEventListener('click', () => {
+      sendMessage('/start', null, '/start');
     });
 
     inputEl.addEventListener('keydown', e => {
