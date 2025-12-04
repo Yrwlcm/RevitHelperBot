@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using RevitHelperBot.Application.Conversation;
 using RevitHelperBot.Application.Localization;
 using RevitHelperBot.Application.Messaging;

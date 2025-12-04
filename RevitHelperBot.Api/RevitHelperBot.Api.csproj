@@ -9,12 +9,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Telegram.Bot" Version="22.0.0" />
+        <ProjectReference Include="..\\RevitHelperBot.Application\\RevitHelperBot.Application.csproj" />
+        <ProjectReference Include="..\\RevitHelperBot.Core\\RevitHelperBot.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\\RevitHelperBot.Application\\RevitHelperBot.Application.csproj" />
-        <ProjectReference Include="..\\RevitHelperBot.Core\\RevitHelperBot.Core.csproj" />
+        <Content Include="..\\data\\scenario.json">
+            <Link>data\scenario.json</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using RevitHelperBot.Core.Entities;
 
 namespace RevitHelperBot.Application.Scenario;

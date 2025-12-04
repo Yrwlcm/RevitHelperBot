@@ -1,6 +1,6 @@
 using RevitHelperBot.Application.Messaging;
 
-namespace RevitHelperBot.Api.Services;
+namespace RevitHelperBot.Services;
 
 public class CapturingBotResponseSender : IBotResponseSender
 {

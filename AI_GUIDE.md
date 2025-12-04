@@ -4,13 +4,12 @@
 - Architecture:
   - Core: only domain contracts/entities, no framework refs.
   - Application: orchestrates Core, implements conversation engine/state store, localization, scenario services; keep it Telegram-agnostic.
-  - Api: composition root (DI, hosting), Telegram integration, concrete `IBotResponseSender`.
+  - Api: composition root (DI, hosting), controllers (`/api/simulation`), concrete `IBotResponseSender` for web simulation; Telegram integration отключена.
 - Conversation flow:
-  - `/start` sets `ConversationState.TopicSelection` and outputs the node with `Id=start` (if present) from the Excel graph; otherwise sends the welcome text.
-  - Callback data is treated as a node id; text without commands is resolved by keyword search (`Keywords` column) before falling back to echo.
+  - `/start` sets `ConversationState.TopicSelection` and outputs the node with `Id=start` (if present); otherwise sends the welcome text.
+  - Callback data is treated as a node id; text without commands is resolved by keyword search (`Keywords`) before falling back to echo.
   - `/reload` is handled in `BotUpdateService`; allowed only for `Admin:AllowedUserIds`, then reloads scenario data.
 - Configuration:
-  - `Telegram:BotToken` or env `Telegram__BotToken`.
   - `Admin:AllowedUserIds` (chatIds allowed to `/reload`).
   - `Scenario:FilePath` path to the JSON scenario file (`data/scenario.json` by default).
 - Style:
@@ -20,5 +19,6 @@
 - Testing:
   - Keep unit tests under `RevitHelperBot.Application.Tests`; prefer fakes for `IBotResponseSender`/`IScenarioService`, avoid hitting Telegram or the filesystem in tests.
   - Run with `/home/asd/.dotnet/dotnet test RevitHelperBot.sln`; first restore needs internet, VSTest may require allowing socket permissions.
-- Containerization: Dockerfile lives in `RevitHelperBot.Api`; compose files expect `TELEGRAM_BOT_TOKEN`.
+- Containerization: Dockerfile lives in `RevitHelperBot.Api`; compose mounts `./data` to `/app/data`.
 - No database yet; avoid adding persistence until explicitly requested.
+- Plugin readiness: business logic lives in Core/Application; `/api/simulation` mirrors the same flow for external clients (e.g., Revit plugin).

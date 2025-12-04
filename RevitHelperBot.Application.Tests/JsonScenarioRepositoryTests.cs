@@ -1,8 +1,6 @@
 using System;
 using System.IO;
-using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using RevitHelperBot.Application.Options;
 using RevitHelperBot.Application.Scenario;
@@ -72,6 +70,26 @@ public class JsonScenarioRepositoryTests
         var action = () => repo.LoadScenario();
 
         action.Should().Throw<FileNotFoundException>();
+    }
+
+    [Test]
+    public void LoadScenario_UsesBaseDirectoryForRelativePath()
+    {
+        var folder = Path.Combine(AppContext.BaseDirectory, $"testdata-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        var file = Path.Combine(folder, "scenario.json");
+        File.WriteAllText(file, """
+        [
+          { "id": "start", "text": "Hello", "keywords": [], "buttons": [] }
+        ]
+        """);
+
+        var repo = CreateRepository(Path.Combine(Path.GetFileName(folder), "scenario.json"));
+
+        var result = repo.LoadScenario();
+
+        result.Should().ContainKey("start");
+        Directory.Delete(folder, true);
     }
 
     private static JsonScenarioRepository CreateRepository(string path)

@@ -1,4 +1,4 @@
-namespace RevitHelperBot.Api.Contracts;
+namespace RevitHelperBot.Contracts;
 
 public sealed record SimulateRequest
 {

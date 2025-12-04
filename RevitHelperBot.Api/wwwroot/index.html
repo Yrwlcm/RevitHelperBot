@@ -231,7 +231,7 @@
       statusEl.classList.remove('error');
 
       try {
-        const res = await fetch('/simulate', {
+        const res = await fetch('/api/simulation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace RevitHelperBot.Core.Entities;
 
 public sealed record DialogueNode(

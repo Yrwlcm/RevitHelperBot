@@ -11,7 +11,10 @@ public class JsonScenarioRepository : IScenarioRepository
 
     public JsonScenarioRepository(IOptions<ScenarioOptions> options)
     {
-        filePath = options.Value.FilePath;
+        var configuredPath = options.Value.FilePath;
+        filePath = Path.IsPathRooted(configuredPath)
+            ? configuredPath
+            : Path.Combine(AppContext.BaseDirectory, configuredPath);
     }
 
     public Dictionary<string, DialogueNode> LoadScenario()
