@@ -9,6 +9,7 @@ builder.Services.AddControllers();
 
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<ScenarioOptions>(builder.Configuration.GetSection(ScenarioOptions.SectionName));
+builder.Services.Configure<DocumentsOptions>(builder.Configuration.GetSection(DocumentsOptions.SectionName));
 
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton<SimulationRunner>();

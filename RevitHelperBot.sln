@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitHelperBot.Application"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitHelperBot.Application.Tests", "RevitHelperBot.Application.Tests\RevitHelperBot.Application.Tests.csproj", "{1D2BC8F2-7CC5-418B-AC29-57DF74C52D9F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitHelperBot.Perf", "RevitHelperBot.Perf\RevitHelperBot.Perf.csproj", "{76C3E294-B331-457A-9999-F39FE908C54A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{1D2BC8F2-7CC5-418B-AC29-57DF74C52D9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D2BC8F2-7CC5-418B-AC29-57DF74C52D9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D2BC8F2-7CC5-418B-AC29-57DF74C52D9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76C3E294-B331-457A-9999-F39FE908C54A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76C3E294-B331-457A-9999-F39FE908C54A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76C3E294-B331-457A-9999-F39FE908C54A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76C3E294-B331-457A-9999-F39FE908C54A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 using RevitHelperBot.Application.Conversation;
+using RevitHelperBot.Application.Documents;
 using RevitHelperBot.Application.Localization;
 using RevitHelperBot.Application.Messaging;
 using RevitHelperBot.Application.Scenario;
@@ -19,6 +20,8 @@ public class ConversationEngineTests
     private FakeResponseSender responseSender = null!;
     private FakeLocalizationService localization = null!;
     private FakeScenarioService scenario = null!;
+    private FakeDocumentSearchService documentSearch = null!;
+    private FakeDocumentSearchResultFormatter documentSearchFormatter = null!;
 
     [SetUp]
     public void SetUp()
@@ -27,10 +30,12 @@ public class ConversationEngineTests
         responseSender = new FakeResponseSender();
         localization = new FakeLocalizationService();
         scenario = new FakeScenarioService();
+        documentSearch = new FakeDocumentSearchService();
+        documentSearchFormatter = new FakeDocumentSearchResultFormatter();
     }
 
     private ConversationEngine CreateEngine() =>
-        new(stateStore, localization, responseSender, scenario);
+        new(stateStore, localization, responseSender, scenario, documentSearch, documentSearchFormatter);
 
     [Test]
     public async Task StartCommand_UsesRootNodeWhenPresent()
@@ -83,28 +88,38 @@ public class ConversationEngineTests
     }
 
     [Test]
-    public async Task Text_SearchesByKeywordsWhenNoExactNode()
+    public async Task Text_UsesDocumentSearch()
     {
-        scenario.WithNode(new DialogueNode("disk", "Check disk space", null, new List<string> { "диск", "ssd" }, new List<ButtonOption>()));
         var engine = CreateEngine();
-        var update = new BotUpdate(11, 11, "user", "Проблема с диск", null, null);
+        documentSearch.NextResult = new DocumentSearchResult(
+            "query",
+            DocumentSearchStatus.Ok,
+            new List<DocumentSearchHit> { new("Folder/File.docx", false, new[] { "ctx" }) },
+            1,
+            false,
+            "root",
+            1,
+            null);
+        documentSearchFormatter.NextText = "formatted";
+        var update = new BotUpdate(11, 11, "user", "query", null, null);
 
         await engine.HandleAsync(update, CancellationToken.None);
 
         responseSender.Responses.Should().ContainSingle();
-        responseSender.Responses[0].Text.Should().Be("Check disk space");
+        responseSender.Responses[0].Text.Should().Be("formatted");
+        documentSearch.LastQuery.Should().Be("query");
     }
 
     [Test]
-    public async Task UnknownText_EchoesBack()
+    public async Task UnknownCommand_ReturnsHelpText()
     {
         var engine = CreateEngine();
-        var update = new BotUpdate(12, 12, "user", "unknown text", null, null);
+        var update = new BotUpdate(12, 12, "user", "/unknown", null, null);
 
         await engine.HandleAsync(update, CancellationToken.None);
 
         responseSender.Responses.Should().ContainSingle();
-        responseSender.Responses[0].Text.Should().Be("echo:unknown text");
+        responseSender.Responses[0].Text.Should().Contain("/start");
     }
 
     [Test]
@@ -151,5 +166,36 @@ public class ConversationEngineTests
         public Task ReloadData(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public void WithNode(DialogueNode node) => nodes[node.Id] = node;
+    }
+
+    private sealed class FakeDocumentSearchService : IDocumentSearchService
+    {
+        public string? LastQuery { get; private set; }
+        public DocumentSearchResult NextResult { get; set; } = new(
+            string.Empty,
+            DocumentSearchStatus.Ok,
+            Array.Empty<DocumentSearchHit>(),
+            0,
+            false,
+            string.Empty,
+            0,
+            null);
+
+        public Task<DocumentSearchResult> SearchAsync(string query, CancellationToken cancellationToken)
+        {
+            LastQuery = query;
+            return Task.FromResult(NextResult);
+        }
+
+        public Task ReloadAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public DocumentIndexStatus GetStatus() => new("root", true, 0, 0, null, null);
+    }
+
+    private sealed class FakeDocumentSearchResultFormatter : IDocumentSearchResultFormatter
+    {
+        public string NextText { get; set; } = "formatted";
+
+        public string Format(DocumentSearchResult result) => NextText;
     }
 }

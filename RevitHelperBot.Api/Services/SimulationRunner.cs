@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using RevitHelperBot.Application.Conversation;
-using RevitHelperBot.Application.Localization;
-using RevitHelperBot.Application.Options;
-using RevitHelperBot.Application.Scenario;
 using RevitHelperBot.Application.Services;
 using RevitHelperBot.Contracts;
 using RevitHelperBot.Core.Entities;
@@ -24,15 +21,9 @@ public class SimulationRunner
     {
         using var scope = scopeFactory.CreateScope();
 
-        var stateStore = scope.ServiceProvider.GetRequiredService<IConversationStateStore>();
-        var localization = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        var scenarioService = scope.ServiceProvider.GetRequiredService<IScenarioService>();
-        var adminOptions = scope.ServiceProvider.GetRequiredService<IOptions<AdminOptions>>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<BotUpdateService>>();
-
         var responseSender = new CapturingBotResponseSender();
-        var engine = new ConversationEngine(stateStore, localization, responseSender, scenarioService);
-        var botUpdateService = new BotUpdateService(engine, scenarioService, responseSender, adminOptions, logger);
+        var engine = ActivatorUtilities.CreateInstance<ConversationEngine>(scope.ServiceProvider, responseSender);
+        var botUpdateService = ActivatorUtilities.CreateInstance<BotUpdateService>(scope.ServiceProvider, engine, responseSender);
 
         var command = ExtractCommand(request.Text);
         var senderId = request.SenderId ?? request.ChatId;

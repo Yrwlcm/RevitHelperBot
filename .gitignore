@@ -25,3 +25,7 @@ packages/
 
 # Temporary files
 tmp/
+
+# Secure files
+Examples/
+data/docs/

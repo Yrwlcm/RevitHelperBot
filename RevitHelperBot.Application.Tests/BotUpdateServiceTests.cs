@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -5,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RevitHelperBot.Application.Conversation;
+using RevitHelperBot.Application.Documents;
 using RevitHelperBot.Application.Localization;
 using RevitHelperBot.Application.Messaging;
 using RevitHelperBot.Application.Options;
@@ -22,6 +24,8 @@ public class BotUpdateServiceTests
     private IConversationStateStore stateStore = null!;
     private LocalizationService localization = null!;
     private FakeScenarioService scenarioService = null!;
+    private FakeDocumentSearchService documentSearchService = null!;
+    private FakeDocumentSearchResultFormatter formatter = null!;
 
     [SetUp]
     public void SetUp()
@@ -30,13 +34,15 @@ public class BotUpdateServiceTests
         stateStore = new InMemoryConversationStateStore();
         localization = new LocalizationService();
         scenarioService = new FakeScenarioService();
+        documentSearchService = new FakeDocumentSearchService();
+        formatter = new FakeDocumentSearchResultFormatter();
     }
 
     private BotUpdateService CreateService(IEnumerable<long>? admins = null)
     {
-        var engine = new ConversationEngine(stateStore, localization, responseSender, scenarioService);
+        var engine = new ConversationEngine(stateStore, localization, responseSender, scenarioService, documentSearchService, formatter);
         var options = OptionsFactory.Create(new AdminOptions { AllowedUserIds = admins?.ToList() ?? new List<long>() });
-        return new BotUpdateService(engine, scenarioService, responseSender, options, NullLogger<BotUpdateService>.Instance);
+        return new BotUpdateService(engine, scenarioService, documentSearchService, responseSender, options, NullLogger<BotUpdateService>.Instance);
     }
 
     [Test]
@@ -61,7 +67,8 @@ public class BotUpdateServiceTests
         await service.HandleUpdateAsync(update, CancellationToken.None);
 
         scenarioService.ReloadCalled.Should().BeTrue();
-        responseSender.LastMessageText.Should().Be("✅ Configuration reloaded from disk.");
+        documentSearchService.ReloadCalled.Should().BeTrue();
+        responseSender.LastMessageText.Should().Contain("✅");
     }
 
     [Test]
@@ -73,7 +80,8 @@ public class BotUpdateServiceTests
         await service.HandleUpdateAsync(update, CancellationToken.None);
 
         scenarioService.ReloadCalled.Should().BeFalse();
-        responseSender.LastMessageText.Should().Be("⛔ Access denied.");
+        documentSearchService.ReloadCalled.Should().BeFalse();
+        responseSender.LastMessageText.Should().Be("⛔ Доступ запрещён.");
     }
 
     private sealed class FakeResponseSender : IBotResponseSender
@@ -101,5 +109,26 @@ public class BotUpdateServiceTests
             ReloadCalled = true;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeDocumentSearchService : IDocumentSearchService
+    {
+        public bool ReloadCalled { get; private set; }
+
+        public Task<DocumentSearchResult> SearchAsync(string query, CancellationToken cancellationToken) =>
+            Task.FromResult(new DocumentSearchResult(query, DocumentSearchStatus.Ok, Array.Empty<DocumentSearchHit>(), 0, false, "root", 0, null));
+
+        public Task ReloadAsync(CancellationToken cancellationToken)
+        {
+            ReloadCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public DocumentIndexStatus GetStatus() => new("root", true, 0, 0, null, null);
+    }
+
+    private sealed class FakeDocumentSearchResultFormatter : IDocumentSearchResultFormatter
+    {
+        public string Format(DocumentSearchResult result) => "formatted";
     }
 }

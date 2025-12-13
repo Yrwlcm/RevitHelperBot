@@ -157,7 +157,7 @@
   <div class="app">
     <div class="sidebar">
       <h1>RevitHelperBot</h1>
-      <p>Симулятор диалога без Telegram. Сценарий читается из <code>Scenario:FilePath</code> (JSON). Нажимайте кнопки или вводите текст.</p>
+      <p>Симулятор поиска по Word-документам без Telegram. Документы читаются из <code>Documents:RootPath</code> (по умолчанию <code>data/docs</code>).</p>
       <div class="field">
         <label for="chatId">Chat Id</label>
         <input id="chatId" type="number" value="1" />
@@ -168,14 +168,14 @@
       </div>
       <div class="field">
         <label>Кратко</label>
-        <p>Команда <code>/start</code> отдает узел <code>start</code>; кнопки шлют callback, текст ищет по keywords, иначе эхо.</p>
+        <p><code>/start</code> — инструкция; текст — поиск по документам; <code>/reindex</code> (админам) — пересобрать индекс.</p>
       </div>
       <div class="status" id="status"></div>
     </div>
     <div class="chat">
       <div class="messages" id="messages"></div>
       <div class="composer">
-        <input id="input" type="text" placeholder="Введите сообщение или /start" />
+        <input id="input" type="text" placeholder="Введите запрос или /start" />
         <button class="btn-primary" id="startBtn">Start</button>
         <button class="btn-primary" id="sendBtn">Send</button>
       </div>

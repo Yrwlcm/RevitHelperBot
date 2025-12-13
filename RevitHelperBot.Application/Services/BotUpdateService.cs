@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RevitHelperBot.Application.Conversation;
+using RevitHelperBot.Application.Documents;
 using RevitHelperBot.Application.Messaging;
 using RevitHelperBot.Application.Options;
 using RevitHelperBot.Application.Scenario;
@@ -13,6 +14,7 @@ public class BotUpdateService : IBotUpdateService
 {
     private readonly IConversationEngine conversationEngine;
     private readonly IScenarioService scenarioService;
+    private readonly IDocumentSearchService documentSearchService;
     private readonly IBotResponseSender responseSender;
     private readonly AdminOptions adminOptions;
     private readonly ILogger<BotUpdateService> logger;
@@ -20,12 +22,14 @@ public class BotUpdateService : IBotUpdateService
     public BotUpdateService(
         IConversationEngine conversationEngine,
         IScenarioService scenarioService,
+        IDocumentSearchService documentSearchService,
         IBotResponseSender responseSender,
         IOptions<AdminOptions> adminOptions,
         ILogger<BotUpdateService> logger)
     {
         this.conversationEngine = conversationEngine;
         this.scenarioService = scenarioService;
+        this.documentSearchService = documentSearchService;
         this.responseSender = responseSender;
         this.adminOptions = adminOptions.Value;
         this.logger = logger;
@@ -38,9 +42,9 @@ public class BotUpdateService : IBotUpdateService
             throw new ArgumentNullException(nameof(update));
         }
 
-        if (IsReloadCommand(update.Command))
+        if (IsReloadCommand(update.Command) || IsReindexCommand(update.Command))
         {
-            await HandleReloadAsync(update, cancellationToken);
+            await HandleReindexAsync(update, cancellationToken);
             return;
         }
 
@@ -55,20 +59,49 @@ public class BotUpdateService : IBotUpdateService
         }
     }
 
-    private async Task HandleReloadAsync(BotUpdate update, CancellationToken cancellationToken)
+    private async Task HandleReindexAsync(BotUpdate update, CancellationToken cancellationToken)
     {
         if (!IsAdmin(update.SenderId))
         {
-            await responseSender.SendAsync(update.ChatId, new BotResponse("⛔ Access denied.", null), cancellationToken);
+            await responseSender.SendAsync(update.ChatId, new BotResponse("⛔ Доступ запрещён.", null), cancellationToken);
             return;
         }
 
-        await scenarioService.ReloadData(cancellationToken);
-        await responseSender.SendAsync(update.ChatId, new BotResponse("✅ Configuration reloaded from disk.", null), cancellationToken);
+        var errors = new List<string>();
+
+        try
+        {
+            await scenarioService.ReloadData(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to reload scenario configuration");
+            errors.Add("scenario");
+        }
+
+        try
+        {
+            await documentSearchService.ReloadAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to rebuild documents index");
+            errors.Add("documents");
+        }
+
+        var indexStatus = documentSearchService.GetStatus();
+        var message = errors.Count == 0
+            ? $"✅ Индекс обновлён. Документов: {indexStatus.DocumentCount}."
+            : $"⚠️ Обновление завершилось с ошибками ({string.Join(", ", errors)}). Документов: {indexStatus.DocumentCount}.";
+
+        await responseSender.SendAsync(update.ChatId, new BotResponse(message, null), cancellationToken);
     }
 
     private bool IsAdmin(long senderId) => adminOptions.AllowedUserIds.Contains(senderId);
 
     private static bool IsReloadCommand(string? command) =>
         string.Equals(command, "/reload", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsReindexCommand(string? command) =>
+        string.Equals(command, "/reindex", StringComparison.OrdinalIgnoreCase);
 }

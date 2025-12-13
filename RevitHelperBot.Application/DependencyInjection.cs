@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using RevitHelperBot.Application.Conversation;
+using RevitHelperBot.Application.Documents;
 using RevitHelperBot.Application.Localization;
 using RevitHelperBot.Application.Messaging;
 using RevitHelperBot.Application.Scenario;
@@ -17,6 +18,10 @@ public static class DependencyInjection
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddSingleton<IScenarioRepository, JsonScenarioRepository>();
         services.AddSingleton<IScenarioService, ScenarioService>();
+        services.AddSingleton<IWordDocumentsRepository, FileSystemWordDocumentsRepository>();
+        services.AddSingleton<IDocxTextExtractor, DocxTextExtractor>();
+        services.AddSingleton<IDocumentSearchService, DocumentSearchService>();
+        services.AddSingleton<IDocumentSearchResultFormatter, DocumentSearchResultFormatter>();
         services.AddScoped<IBotResponseSender, NoOpBotResponseSender>();
         services.AddScoped<IBotUpdateService, BotUpdateService>();
         return services;

@@ -1,13 +1,22 @@
 services:
   revithelperbot.api:
+    image: revithelperbot.api:latest
     build:
       context: .
       dockerfile: RevitHelperBot.Api/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      Scenario__FilePath: data/scenario.json
+      # Documents__RootPath: data/docs
+      # Для запуска на примерах из репозитория:
+      Documents__RootPath: /app/examples
+      # Пример админа (для /reindex):
+      # Admin__AllowedUserIds__0: 1
     ports:
       - "8080:8080"
-      - "8081:8081"
     volumes:
-      - ./data:/app/data
+      # - ./data:/app/data:ro
+      # Для запуска на примерах из репозитория:
+      - ./RevitHelperBot.Api/Examples:/app/examples:ro
     restart: unless-stopped

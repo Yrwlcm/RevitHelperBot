@@ -1,5 +1,6 @@
 using RevitHelperBot.Application.Localization;
 using RevitHelperBot.Application.Messaging;
+using RevitHelperBot.Application.Documents;
 using RevitHelperBot.Application.Scenario;
 using RevitHelperBot.Core.Entities;
 
@@ -11,17 +12,23 @@ public class ConversationEngine : IConversationEngine
     private readonly ILocalizationService localizationService;
     private readonly IBotResponseSender responseSender;
     private readonly IScenarioService scenarioService;
+    private readonly IDocumentSearchService documentSearchService;
+    private readonly IDocumentSearchResultFormatter documentSearchResultFormatter;
 
     public ConversationEngine(
         IConversationStateStore stateStore,
         ILocalizationService localizationService,
         IBotResponseSender responseSender,
-        IScenarioService scenarioService)
+        IScenarioService scenarioService,
+        IDocumentSearchService documentSearchService,
+        IDocumentSearchResultFormatter documentSearchResultFormatter)
     {
         this.stateStore = stateStore;
         this.localizationService = localizationService;
         this.responseSender = responseSender;
         this.scenarioService = scenarioService;
+        this.documentSearchService = documentSearchService;
+        this.documentSearchResultFormatter = documentSearchResultFormatter;
     }
 
     public async Task HandleAsync(BotUpdate update, CancellationToken cancellationToken)
@@ -47,32 +54,41 @@ public class ConversationEngine : IConversationEngine
             return;
         }
 
-        var payload = update.CallbackData ?? update.Text;
-        if (string.IsNullOrWhiteSpace(payload))
+        if (!string.IsNullOrWhiteSpace(update.CallbackData))
+        {
+            var node = scenarioService.GetNode(update.CallbackData);
+            if (node is not null)
+            {
+                await stateStore.SetStateAsync(update.ChatId, ConversationState.InDialogue, cancellationToken);
+                await SendNodeAsync(update.ChatId, node, cancellationToken);
+            }
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(update.Text))
         {
             return;
         }
 
-        var node = ResolveNode(payload);
-        if (node is not null)
+        if (update.Text.StartsWith("/", StringComparison.Ordinal))
         {
-            await stateStore.SetStateAsync(update.ChatId, ConversationState.InDialogue, cancellationToken);
-            await SendNodeAsync(update.ChatId, node, cancellationToken);
+            await responseSender.SendAsync(
+                update.ChatId,
+                new BotResponse("Неизвестная команда. Введите текст для поиска по документам или отправьте /start."),
+                cancellationToken);
             return;
         }
 
-        var state = await stateStore.GetStateAsync(update.ChatId, cancellationToken);
-        var responseText = localizationService.FormatEcho(payload, state);
+        await stateStore.SetStateAsync(update.ChatId, ConversationState.InDialogue, cancellationToken);
+
+        var searchResult = await documentSearchService.SearchAsync(update.Text, cancellationToken);
+        var responseText = documentSearchResultFormatter.Format(searchResult);
         await responseSender.SendAsync(update.ChatId, new BotResponse(responseText), cancellationToken);
     }
 
     private static bool IsStartCommand(string? command) =>
         string.Equals(command, "/start", StringComparison.OrdinalIgnoreCase);
-
-    private DialogueNode? ResolveNode(string payload) =>
-        string.IsNullOrWhiteSpace(payload)
-            ? null
-            : scenarioService.GetNode(payload) ?? scenarioService.FindByKeyword(payload);
 
     private Task SendNodeAsync(long chatId, DialogueNode node, CancellationToken cancellationToken)
     {

@@ -3,22 +3,23 @@
 - Runtime: use .NET 9 and the local SDK at `/home/asd/.dotnet/dotnet` for `run`, `test`, `build`.
 - Architecture:
   - Core: only domain contracts/entities, no framework refs.
-  - Application: orchestrates Core, implements conversation engine/state store, localization, scenario services; keep it Telegram-agnostic.
-  - Api: composition root (DI, hosting), controllers (`/api/simulation`), concrete `IBotResponseSender` for web simulation; Telegram integration отключена.
+  - Application: document parsing/indexing/search + bot update handling; keep it Telegram-agnostic.
+  - Api: composition root (DI, hosting), controllers (`/api/simulation`), concrete `IBotResponseSender` for web simulation.
 - Conversation flow:
-  - `/start` sets `ConversationState.TopicSelection` and outputs the node with `Id=start` (if present); otherwise sends the welcome text.
-  - Callback data is treated as a node id; text without commands is resolved by keyword search (`Keywords`) before falling back to echo.
-  - `/reload` is handled in `BotUpdateService`; allowed only for `Admin:AllowedUserIds`, then reloads scenario data.
+  - `/start` outputs the node with `Id=start` from `Scenario:FilePath` (help/usage).
+  - Callback data is treated as a node id (scenario buttons).
+  - Plain text is treated as a search query over `.docx` documents (`Documents:RootPath`) and returns matches grouped by folder hierarchy.
+  - `/reindex` (and `/reload`) rebuilds the documents index (admin-only via `Admin:AllowedUserIds`) and also reloads scenario JSON.
+- Documents:
+  - Supported format: `.docx` (OpenXML). `.doc` must be converted to `.docx`.
+  - Index is in-memory (`DocumentSearchService`), built lazily on first search or via `/reindex`.
+  - Extraction is done via `ZipArchive` + streaming XML parse (no external Word libs).
 - Configuration:
-  - `Admin:AllowedUserIds` (chatIds allowed to `/reload`).
-  - `Scenario:FilePath` path to the JSON scenario file (`data/scenario.json` by default).
-- Style:
-  - Do not prefix private fields with `_`; prefer `this.field` if needed.
-  - Favor DI over statics/singletons; keep services small and testable.
-  - Keep configuration via options/binding.
+  - Admins: `Admin:AllowedUserIds`.
+  - Scenario: `Scenario:FilePath` (defaults to `data/scenario.json`).
+  - Documents: `Documents:RootPath` (defaults to `data/docs`), plus tuning options (`MinQueryLength`, `MaxResults`, etc.).
 - Testing:
-  - Keep unit tests under `RevitHelperBot.Application.Tests`; prefer fakes for `IBotResponseSender`/`IScenarioService`, avoid hitting Telegram or the filesystem in tests.
-  - Run with `/home/asd/.dotnet/dotnet test RevitHelperBot.sln`; first restore needs internet, VSTest may require allowing socket permissions.
-- Containerization: Dockerfile lives in `RevitHelperBot.Api`; compose mounts `./data` to `/app/data`.
-- No database yet; avoid adding persistence until explicitly requested.
-- Plugin readiness: business logic lives in Core/Application; `/api/simulation` mirrors the same flow for external clients (e.g., Revit plugin).
+  - Keep unit tests under `RevitHelperBot.Application.Tests`; prefer fakes for repositories/extractors.
+  - Run with `/home/asd/.dotnet/dotnet test RevitHelperBot.sln`.
+- Containerization: Dockerfile lives in `RevitHelperBot.Api`; compose mounts `./data` to `/app/data` (place docs under `./data/docs`).
+- Performance: use `RevitHelperBot.Perf` to generate synthetic `.docx`, build index and benchmark search latency/memory.
